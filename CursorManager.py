@@ -15,8 +15,9 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtGui import QFont, QIcon
-from plyer import notification  # Desktop notifications
+from plyer import notification
 import sqlite3
+import uuid
 
 # -------------------- Database Manager Class --------------------
 class DatabaseManager:
@@ -66,26 +67,24 @@ class IDGenerator:
         time.sleep(0.8)
 
     @staticmethod
-    def generate_random_hex(length: int) -> str:
-        return secrets.token_hex(length)
+    def generate_machine_id() -> str:
+        """Makine kimliği için rastgele bir hex değeri üretir."""
+        return secrets.token_hex(32)
 
-    def generate_machine_id(self) -> str:
-        self.simulate_work()
-        return self.generate_random_hex(32)
+    @staticmethod
+    def generate_mac_machine_id() -> str:
+        """MAC makine kimliği için rastgele bir hex değeri üretir."""
+        return secrets.token_hex(32)
 
-    def generate_mac_machine_id(self) -> str:
-        self.simulate_work()
-        return self.generate_random_hex(64)
+    @staticmethod
+    def generate_device_id() -> str:
+        """UUID formatında bir cihaz kimliği üretir."""
+        return str(uuid.uuid4())
 
-    def generate_device_id(self) -> str:
-        self.simulate_work()
-        random_hex = self.generate_random_hex(16)
-        return f"{random_hex[:8]}-{random_hex[8:12]}-{random_hex[12:16]}-{random_hex[16:20]}-{random_hex[20:32]}"
-
-    def generate_sqm_id(self) -> str:
-        """SQM ID oluşturur."""
-        self.simulate_work()
-        return self.generate_random_hex(64)
+    @staticmethod
+    def generate_sqm_id() -> str:
+        """SQM ID için UUID formatında bir değer üretir."""
+        return str(uuid.uuid4())
 
 # -------------------- Config Manager Class --------------------
 class ConfigManager:
@@ -148,14 +147,13 @@ def kill_cursor_processes():
         os.system("pkill -f Cursor")
 
 # -------------------- GUI Class --------------------
-# -------------------- GUI Class --------------------
 class CursorManagerWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Cursor Manager")
         self.setFixedSize(500, 300)
 
-        self.db_manager = DatabaseManager()  # Veritabanı yöneticisini başlat
+        self.db_manager = DatabaseManager()
 
         icon_path = resource_path("icon.ico")
         self.setWindowIcon(QIcon(icon_path))
@@ -210,7 +208,7 @@ class CursorManagerWindow(QMainWindow):
 
         self.tab_widget.addTab(update_tab, "Güncelleme Kontrolü")
 
-        # Son işlem bilgisini al ve ekranda göster
+
         last_operation, timestamp = self.db_manager.get_last_operation()
         if last_operation:
             self.update_status.setStyleSheet("color: #e74c3c; font-weight: bold;")
@@ -244,7 +242,7 @@ class CursorManagerWindow(QMainWindow):
 
         self.tab_widget.addTab(id_tab, "ID Değiştirme")
 
-        # Daha önce değiştirilen ID'leri al ve ekranda göster
+
         self.show_previous_ids()
 
     def show_previous_ids(self):
@@ -263,17 +261,17 @@ class CursorManagerWindow(QMainWindow):
         local_path = os.path.join(os.environ['LOCALAPPDATA'])
         cursor_update_path = os.path.join(local_path, 'cursor-updater')
 
-        self.progress_bar.setValue(50)  # Start progress
+        self.progress_bar.setValue(50)
 
         try:
-            # Eğer cursor-updater dizini varsa, bu dizini sil
+
             if os.path.exists(cursor_update_path):
                 if os.path.isdir(cursor_update_path):
-                    shutil.rmtree(cursor_update_path)  # Dizin varsa, sil
+                    shutil.rmtree(cursor_update_path)
                 else:
-                    os.remove(cursor_update_path)  # Dosya varsa, sil
+                    os.remove(cursor_update_path)
             
-            # Yeniden boş bir dosya oluştur
+
             Path(cursor_update_path).touch()
             self.status_label.setStyleSheet("color: #27ae60; font-weight: bold;")
             self.status_label.setText("✅ İşlem başarılı: Güncellemeler engellendi")
@@ -282,35 +280,34 @@ class CursorManagerWindow(QMainWindow):
                 message="Güncellemeler engellendi.",
                 timeout=5
             )
-            self.progress_bar.setValue(100)  # Complete progress
+            self.progress_bar.setValue(100)
 
-            # İşlem veritabanına kaydedildi
             self.db_manager.insert_operation("Güncellemeler engellendi")
 
         except Exception as e:
-            # Hata durumunda kullanıcıya bilgi ver
+
             self.status_label.setStyleSheet("color: #e74c3c; font-weight: bold;")
             self.status_label.setText(f"❌ Hata oluştu: {str(e)}")
-            self.progress_bar.setValue(0)  # Reset progress
+            self.progress_bar.setValue(0)
 
-        # Güncelleme durumunu kontrol et
+
         self.check_update_status()
 
     def enable_updates(self):
         local_path = os.path.join(os.environ['LOCALAPPDATA'])
         cursor_update_path = os.path.join(local_path, 'cursor-updater')
 
-        self.progress_bar.setValue(50)  # Start progress
+        self.progress_bar.setValue(50)
 
         try:
-            # Eğer dizin var ise, sil
+
             if os.path.exists(cursor_update_path):
                 if os.path.isdir(cursor_update_path):
-                    shutil.rmtree(cursor_update_path)  # Dizin varsa, sil
+                    shutil.rmtree(cursor_update_path)
                 else:
-                    os.remove(cursor_update_path)  # Dosya varsa, sil
+                    os.remove(cursor_update_path)
             
-            # Yeniden dizin oluştur
+
             os.makedirs(cursor_update_path)
             self.status_label.setStyleSheet("color: #27ae60; font-weight: bold;")
             self.status_label.setText("✅ İşlem başarılı: Güncellemeler aktifleştirildi")
@@ -319,18 +316,18 @@ class CursorManagerWindow(QMainWindow):
                 message="Güncellemeler aktifleştirildi.",
                 timeout=5
             )
-            self.progress_bar.setValue(100)  # Complete progress
+            self.progress_bar.setValue(100)
 
-            # İşlem veritabanına kaydedildi
+
             self.db_manager.insert_operation("Güncellemeler aktifleştirildi")
 
         except Exception as e:
-            # Hata durumunda kullanıcıya bilgi ver
+
             self.status_label.setStyleSheet("color: #e74c3c; font-weight: bold;")
             self.status_label.setText(f"❌ Hata oluştu: {str(e)}")
-            self.progress_bar.setValue(0)  # Reset progress
+            self.progress_bar.setValue(0)
 
-        # Güncelleme durumunu kontrol et
+
         self.check_update_status()
 
     def check_update_status(self):
@@ -351,18 +348,15 @@ class CursorManagerWindow(QMainWindow):
             self.id_status_label.setText("❌ Yönetici yetkisi gerekli!")
             return
 
-        # ID Generator instance
+
         id_gen = IDGenerator()
 
-        # Generate all IDs
         machine_id = id_gen.generate_machine_id()
         mac_machine_id = id_gen.generate_mac_machine_id()
         device_id = id_gen.generate_device_id()
         sqm_id = id_gen.generate_sqm_id()
 
         kill_cursor_processes()
-
-        # Update GUI with the generated IDs
         ids_output = f"""Machine ID: {machine_id}
 Mac Machine ID: {mac_machine_id}
 Device ID: {device_id}
@@ -371,7 +365,6 @@ SQM ID: {sqm_id}"""
         self.current_ids.setText(ids_output)
         self.id_status_label.setText("✅ ID'ler başarıyla değiştirildi!")
 
-        # ID değişim işlemini veritabanına kaydet
         self.db_manager.insert_operation(f"ID'ler değiştirildi: {machine_id}, {mac_machine_id}, {device_id}, {sqm_id}")
 
 def main():
